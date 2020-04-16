@@ -52,14 +52,14 @@ def make_session(num_cpu=None, make_default=False):
     """Returns a session that will use <num_cpu> CPU's only"""
     if num_cpu is None:
         num_cpu = int(os.getenv('RCALL_NUM_CPU', multiprocessing.cpu_count()))
-    tf_config = tf.ConfigProto(
+    tf_config = tf.compat.v1.ConfigProto(
         inter_op_parallelism_threads=num_cpu,
         intra_op_parallelism_threads=num_cpu)
     tf_config.gpu_options.allocator_type = 'BFC'
     if make_default:
-        return tf.InteractiveSession(config=tf_config)
+        return tf.compat.v1.InteractiveSession(config=tf_config)
     else:
-        return tf.Session(config=tf_config)
+        return tf.compat.v1.Session(config=tf_config)
 
 def single_threaded_session():
     """Returns a session which will only use a single CPU"""
@@ -68,7 +68,7 @@ def single_threaded_session():
 def in_session(f):
     @functools.wraps(f)
     def newfunc(*args, **kwargs):
-        with tf.Session():
+        with tf.compat.v1.Session():
             f(*args, **kwargs)
     return newfunc
 
@@ -76,8 +76,8 @@ ALREADY_INITIALIZED = set()
 
 def initialize():
     """Initialize all the uninitialized variables in the global scope."""
-    new_variables = set(tf.global_variables()) - ALREADY_INITIALIZED
-    tf.get_default_session().run(tf.variables_initializer(new_variables))
+    new_variables = set(tf.compat.v1.global_variables()) - ALREADY_INITIALIZED
+    tf.compat.v1.get_default_session().run(tf.compat.v1.variables_initializer(new_variables))
     ALREADY_INITIALIZED.update(new_variables)
 
 # ================================================================
@@ -134,8 +134,8 @@ def function(inputs, outputs, updates=None, givens=None):
     on placeholder name (passed to constructor or accessible via placeholder.op.name).
 
     Example:
-        x = tf.placeholder(tf.int32, (), name="x")
-        y = tf.placeholder(tf.int32, (), name="y")
+        x = tf.compat.v1.placeholder(tf.int32, (), name="x")
+        y = tf.compat.v1.placeholder(tf.int32, (), name="y")
         z = 3 * x + 2 * y
         lin = function([x, y], z, givens={y: 0})
 
@@ -149,7 +149,7 @@ def function(inputs, outputs, updates=None, givens=None):
 
     Parameters
     ----------
-    inputs: [tf.placeholder, tf.constant, or object with make_feed_dict method]
+    inputs: [tf.compat.v1.placeholder, tf.constant, or object with make_feed_dict method]
         list of input arguments
     outputs: [tf.Variable] or tf.Variable
         list of outputs or a single output to be returned from function. Returned
@@ -191,7 +191,7 @@ class _Function(object):
         # Update feed dict with givens.
         for inpt in self.givens:
             feed_dict[inpt] = feed_dict.get(inpt, self.givens[inpt])
-        results = tf.get_default_session().run(self.outputs_update, feed_dict=feed_dict)[:-1]
+        results = tf.compat.v1.get_default_session().run(self.outputs_update, feed_dict=feed_dict)[:-1]
         return results
 
 # ================================================================
@@ -225,24 +225,24 @@ class SetFromFlat(object):
         shapes = list(map(var_shape, var_list))
         total_size = np.sum([intprod(shape) for shape in shapes])
 
-        self.theta = theta = tf.placeholder(dtype, [total_size])
+        self.theta = theta = tf.compat.v1.placeholder(dtype, [total_size])
         start = 0
         assigns = []
         for (shape, v) in zip(shapes, var_list):
             size = intprod(shape)
-            assigns.append(tf.assign(v, tf.reshape(theta[start:start + size], shape)))
+            assigns.append(tf.compat.v1.assign(v, tf.reshape(theta[start:start + size], shape)))
             start += size
         self.op = tf.group(*assigns)
 
     def __call__(self, theta):
-        tf.get_default_session().run(self.op, feed_dict={self.theta: theta})
+        tf.compat.v1.get_default_session().run(self.op, feed_dict={self.theta: theta})
 
 class GetFlat(object):
     def __init__(self, var_list):
         self.op = tf.concat(axis=0, values=[tf.reshape(v, [numel(v)]) for v in var_list])
 
     def __call__(self):
-        return tf.get_default_session().run(self.op)
+        return tf.compat.v1.get_default_session().run(self.op)
 
 _PLACEHOLDER_CACHE = {}  # name -> (placeholder, dtype, shape)
 
@@ -252,7 +252,7 @@ def get_placeholder(name, dtype, shape):
         assert dtype1 == dtype and shape1 == shape
         return out
     else:
-        out = tf.placeholder(dtype=dtype, shape=shape, name=name)
+        out = tf.compat.v1.placeholder(dtype=dtype, shape=shape, name=name)
         _PLACEHOLDER_CACHE[name] = (out, dtype, shape)
         return out
 

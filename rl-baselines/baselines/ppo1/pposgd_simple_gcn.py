@@ -364,10 +364,10 @@ def learn(args,env, policy_fn, *,
     ac_space = env.action_space
     pi = policy_fn("pi", ob_space, ac_space) # Construct network for new policy
     oldpi = policy_fn("oldpi", ob_space, ac_space) # Network for old policy
-    atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
-    ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
+    atarg = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
+    ret = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
 
-    lrmult = tf.placeholder(name='lrmult', dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
+    lrmult = tf.compat.v1.placeholder(name='lrmult', dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
     clip_param = clip_param * lrmult # Annealed cliping parameter epislon
 
     # ob = U.get_placeholder_cached(name="ob")
@@ -384,8 +384,8 @@ def learn(args,env, policy_fn, *,
     ob_real['node'] = U.get_placeholder(shape=[None,1,None,ob_space['node'].shape[2]],dtype=tf.float32,name='node_real')
 
     # ac = pi.pdtype.sample_placeholder([None])
-    # ac = tf.placeholder(dtype=tf.int64,shape=env.action_space.nvec.shape)
-    ac = tf.placeholder(dtype=tf.int64, shape=[None,4],name='ac_real')
+    # ac = tf.compat.v1.placeholder(dtype=tf.int64,shape=env.action_space.nvec.shape)
+    ac = tf.compat.v1.placeholder(dtype=tf.int64, shape=[None,4],name='ac_real')
 
     ## PPO loss
     kloldnew = oldpi.pd.kl(pi.pd)
@@ -449,8 +449,8 @@ def learn(args,env, policy_fn, *,
 
     var_list_pi = pi.get_trainable_variables()
     var_list_pi_stop = [var for var in var_list_pi if ('emb' in var.name) or ('gcn' in var.name) or ('stop' in var.name)]
-    var_list_d_step = [var for var in tf.global_variables() if 'd_step' in var.name]
-    var_list_d_final = [var for var in tf.global_variables() if 'd_final' in var.name]
+    var_list_d_step = [var for var in tf.compat.v1.global_variables() if 'd_step' in var.name]
+    var_list_d_final = [var for var in tf.compat.v1.global_variables() if 'd_final' in var.name]
 
     ## debug
     debug={}
@@ -497,7 +497,7 @@ def learn(args,env, policy_fn, *,
     adam_d_final = MpiAdam(var_list_d_final, epsilon=adam_epsilon)
 
 
-    assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
+    assign_old_eq_new = U.function([],[], updates=[tf.compat.v1.assign(oldv, newv)
         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
     #
     # compute_losses_expert = U.function([ob['adj'], ob['node'], ac, pi.ac_real],
@@ -530,7 +530,7 @@ def learn(args,env, policy_fn, *,
         try:
             fname = './ckpt/' + args.name_full_load
             sess = tf.get_default_session()
-            # sess.run(tf.global_variables_initializer())
+            # sess.run(tf.compat.v1.global_variables_initializer())
             saver = tf.train.Saver(var_list_pi)
             saver.restore(sess, fname)
             iters_so_far = int(fname.split('_')[-1])+1
@@ -734,8 +734,8 @@ def learn(args,env, policy_fn, *,
             # save
             if iters_so_far % args.save_every == 0:
                 fname = './ckpt/' + args.name_full + '_' + str(iters_so_far)
-                saver = tf.train.Saver(var_list_pi)
-                saver.save(tf.get_default_session(), fname)
+                saver = tf.compat.v1.train.Saver(var_list_pi)
+                saver.save(tf.compat.v1.get_default_session(), fname)
                 print('model saved!',fname)
                 # fname = os.path.join(ckpt_dir, task_name)
                 # os.makedirs(os.path.dirname(fname), exist_ok=True)
@@ -769,10 +769,10 @@ def flatten_lists(listoflists):
 #     ac_space = env.action_space
 #     pi = policy_fn("pi", ob_space, ac_space) # Construct network for new policy
 #     oldpi = policy_fn("oldpi", ob_space, ac_space) # Network for old policy
-#     atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
-#     ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
+#     atarg = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
+#     ret = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
 #
-#     lrmult = tf.placeholder(name='lrmult', dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
+#     lrmult = tf.compat.v1.placeholder(name='lrmult', dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
 #     clip_param = clip_param * lrmult # Annealed cliping parameter epislon
 #
 #     # ob = U.get_placeholder_cached(name="ob")
@@ -799,8 +799,8 @@ def flatten_lists(listoflists):
 #                                        name='node_scaffold_real')
 #
 #     # ac = pi.pdtype.sample_placeholder([None])
-#     # ac = tf.placeholder(dtype=tf.int64,shape=env.action_space.nvec.shape)
-#     ac = tf.placeholder(dtype=tf.int64, shape=[None,4],name='ac_real')
+#     # ac = tf.compat.v1.placeholder(dtype=tf.int64,shape=env.action_space.nvec.shape)
+#     ac = tf.compat.v1.placeholder(dtype=tf.int64, shape=[None,4],name='ac_real')
 #
 #     ## PPO loss
 #     kloldnew = oldpi.pd.kl(pi.pd)
@@ -849,8 +849,8 @@ def flatten_lists(listoflists):
 #
 #     var_list_pi = pi.get_trainable_variables()
 #     var_list_pi_stop = [var for var in var_list_pi if ('emb' in var.name) or ('gcn' in var.name) or ('stop' in var.name)]
-#     var_list_d_step = [var for var in tf.global_variables() if 'd_step' in var.name]
-#     var_list_d_final = [var for var in tf.global_variables() if 'd_final' in var.name]
+#     var_list_d_step = [var for var in tf.compat.v1.global_variables() if 'd_step' in var.name]
+#     var_list_d_final = [var for var in tf.compat.v1.global_variables() if 'd_final' in var.name]
 #     # for var in var_list_pi:
 #     #     print('var_list_pi',var)
 #     # for var in var_list_pi_stop:
@@ -902,7 +902,7 @@ def flatten_lists(listoflists):
 #     adam_d_final = MpiAdam(var_list_d_final, epsilon=adam_epsilon)
 #
 #
-#     assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
+#     assign_old_eq_new = U.function([],[], updates=[tf.compat.v1.assign(oldv, newv)
 #         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
 #     #
 #     # compute_losses_expert = U.function([ob['adj'], ob['node'], ac, pi.ac_real],
@@ -935,7 +935,7 @@ def flatten_lists(listoflists):
 #         try:
 #             fname = './ckpt/' + args.name_full_load
 #             sess = tf.get_default_session()
-#             # sess.run(tf.global_variables_initializer())
+#             # sess.run(tf.compat.v1.global_variables_initializer())
 #             saver = tf.train.Saver(var_list_pi)
 #             saver.restore(sess, fname)
 #             iters_so_far = int(fname.split('_')[-1])+1

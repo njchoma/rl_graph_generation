@@ -18,9 +18,9 @@ def GCN(adj, node_feature, out_channels, is_act=True, is_normalize=False, name='
     '''
     edge_dim = adj.get_shape()[0]
     in_channels = node_feature.get_shape()[-1]
-    with tf.variable_scope(name,reuse=tf.AUTO_REUSE):
-        W = tf.get_variable("W", [edge_dim, in_channels, out_channels])
-        b = tf.get_variable("b", [edge_dim, 1, out_channels])
+    with tf.compat.v1.variable_scope(name,reuse=tf.compat.v1.AUTO_REUSE):
+        W = tf.compat.v1.get_variable("W", [edge_dim, in_channels, out_channels])
+        b = tf.compat.v1.get_variable("b", [edge_dim, 1, out_channels])
         node_embedding = adj@tf.tile(node_feature,[edge_dim,1,1])@W+b
         if is_act:
             node_embedding = tf.nn.relu(node_embedding)
@@ -44,9 +44,9 @@ def GCN_batch(adj, node_feature, out_channels, is_act=True, is_normalize=False, 
     batch_size = tf.shape(adj)[0]
     in_channels = node_feature.get_shape()[-1]
 
-    with tf.variable_scope(name,reuse=tf.AUTO_REUSE):
-        W = tf.get_variable("W", [1, edge_dim, in_channels, out_channels],initializer=tf.glorot_uniform_initializer())
-        b = tf.get_variable("b", [1, edge_dim, 1, out_channels])
+    with tf.compat.v1.variable_scope(name,reuse=tf.compat.v1.AUTO_REUSE):
+        W = tf.compat.v1.get_variable("W", [1, edge_dim, in_channels, out_channels],initializer=tf.compat.v1.glorot_uniform_initializer())
+        b = tf.compat.v1.get_variable("b", [1, edge_dim, 1, out_channels])
         # node_embedding = adj@tf.tile(node_feature,[1,edge_dim,1,1])@tf.tile(W,[batch_size,1,1,1])+b # todo: tf.tile sum the gradients, may need to change
         node_embedding = adj@tf.tile(node_feature,[1,edge_dim,1,1])@tf.tile(W,[batch_size,1,1,1]) # todo: tf.tile sum the gradients, may need to change
         if is_act:
@@ -77,11 +77,11 @@ def GCN_batch(adj, node_feature, out_channels, is_act=True, is_normalize=False, 
 #     batch_size = tf.shape(adj)[0]
 #     in_channels = node_feature.get_shape()[-1]
 #
-#     with tf.variable_scope(name,reuse=tf.AUTO_REUSE):
+#     with tf.compat.v1.variable_scope(name,reuse=tf.compat.v1.AUTO_REUSE):
 #         node_embedding_list = []
 #         for i in range(hops):
-#             W = tf.get_variable("W"+str(i), [1, edge_dim, in_channels, out_channels],initializer=tf.glorot_uniform_initializer())
-#             b = tf.get_variable("b"+str(i), [1, edge_dim, 1, out_channels])
+#             W = tf.compat.v1.get_variable("W"+str(i), [1, edge_dim, in_channels, out_channels],initializer=tf.glorot_uniform_initializer())
+#             b = tf.compat.v1.get_variable("b"+str(i), [1, edge_dim, 1, out_channels])
 #             node_embedding = adj@tf.tile(node_feature,[1,edge_dim,1,1])@tf.tile(W,[batch_size,1,1,1])+b # todo: tf.tile sum the gradients, may need to change
 #             if is_act:
 #                 node_embedding = tf.nn.relu(node_embedding)
@@ -100,15 +100,15 @@ def GCN_batch(adj, node_feature, out_channels, is_act=True, is_normalize=False, 
 def bilinear(emb_1, emb_2, name='bilinear'):
     node_dim = emb_1.get_shape()[-1]
     batch_size = tf.shape(emb_1)[0]
-    with tf.variable_scope(name,reuse=tf.AUTO_REUSE):
-        W = tf.get_variable("W", [1, node_dim, node_dim])
+    with tf.compat.v1.variable_scope(name,reuse=tf.compat.v1.AUTO_REUSE):
+        W = tf.compat.v1.get_variable("W", [1, node_dim, node_dim])
         return emb_1 @ tf.tile(W,[batch_size,1,1]) @ tf.transpose(emb_2,[0,2,1])
 
 def bilinear_multi(emb_1, emb_2, out_dim, name='bilinear'):
     node_dim = emb_1.get_shape()[-1]
     batch_size = tf.shape(emb_1)[0]
-    with tf.variable_scope(name,reuse=tf.AUTO_REUSE):
-        W = tf.get_variable("W", [1,out_dim, node_dim, node_dim])
+    with tf.compat.v1.variable_scope(name,reuse=tf.compat.v1.AUTO_REUSE):
+        W = tf.compat.v1.get_variable("W", [1,out_dim, node_dim, node_dim])
         emb_1 = tf.tile(tf.expand_dims(emb_1,axis=1),[1,out_dim,1,1])
         emb_2 = tf.transpose(emb_2,[0,2,1])
         emb_2 = tf.tile(tf.expand_dims(emb_2,axis=1),[1,out_dim,1,1])
@@ -117,39 +117,39 @@ def bilinear_multi(emb_1, emb_2, out_dim, name='bilinear'):
 def emb_node(ob_node,out_channels):
     batch_size = tf.shape(ob_node)[0]
     in_channels = ob_node.get_shape()[-1]
-    emb = tf.get_variable('emb',[1,1,in_channels,out_channels])
+    emb = tf.compat.v1.get_variable('emb',[1,1,in_channels,out_channels])
     return ob_node @ tf.tile(emb,[batch_size,1,1,1])
 
 
 def discriminator_net(ob,args,name='d_net'):
-    with tf.variable_scope(name,reuse=tf.AUTO_REUSE):
-        ob_node = tf.layers.dense(ob['node'], 8, activation=None, use_bias=False, name='emb')  # embedding layer
+    with tf.compat.v1.variable_scope(name,reuse=tf.compat.v1.AUTO_REUSE):
+        ob_node = tf.compat.v1.layers.dense(ob['node'], 8, activation=None, use_bias=False, name='emb')  # embedding layer
         if args.bn==1:
-            ob_node = tf.layers.batch_normalization(ob_node,axis=-1)
+            ob_node = tf.compat.v1.layers.batch_normalization(ob_node,axis=-1)
         emb_node = GCN_batch(ob['adj'], ob_node, args.emb_size, name='gcn1',aggregate=args.gcn_aggregate)
         for i in range(args.layer_num_d - 2):
             if args.bn==1:
-                emb_node = tf.layers.batch_normalization(emb_node,axis=-1)
+                emb_node = tf.compat.v1.layers.batch_normalization(emb_node,axis=-1)
             emb_node = GCN_batch(ob['adj'], emb_node, args.emb_size, name='gcn1_'+str(i+1),aggregate=args.gcn_aggregate)
         if args.bn==1:
-            emb_node = tf.layers.batch_normalization(emb_node,axis=-1)
+            emb_node = tf.compat.v1.layers.batch_normalization(emb_node,axis=-1)
         emb_node = GCN_batch(ob['adj'], emb_node, args.emb_size, is_act=False, is_normalize=(args.bn == 0), name='gcn2',aggregate=args.gcn_aggregate)
         if args.bn==1:
-            emb_node = tf.layers.batch_normalization(emb_node,axis=-1)
+            emb_node = tf.compat.v1.layers.batch_normalization(emb_node,axis=-1)
         # emb_graph = tf.reduce_max(tf.squeeze(emb_node2, axis=1),axis=1)  # B*f
-        emb_node = tf.layers.dense(emb_node, args.emb_size, activation=tf.nn.relu, use_bias=False, name='linear1')
+        emb_node = tf.compat.v1.layers.dense(emb_node, args.emb_size, activation=tf.nn.relu, use_bias=False, name='linear1')
         if args.bn==1:
-            emb_node = tf.layers.batch_normalization(emb_node,axis=-1)
+            emb_node = tf.compat.v1.layers.batch_normalization(emb_node,axis=-1)
 
 
         if args.gate_sum_d==1:
-            emb_node_gate = tf.layers.dense(emb_node,1,activation=tf.nn.sigmoid,name='gate')
+            emb_node_gate = tf.compat.v1.layers.dense(emb_node,1,activation=tf.nn.sigmoid,name='gate')
             emb_graph = tf.reduce_sum(tf.squeeze(emb_node*emb_node_gate, axis=1),axis=1)  # B*f
         else:
             emb_graph = tf.reduce_sum(tf.squeeze(emb_node, axis=1), axis=1)  # B*f
-        logit = tf.layers.dense(emb_graph, 1, activation=None, name='linear2')
+        logit = tf.compat.v1.layers.dense(emb_graph, 1, activation=None, name='linear2')
         pred = tf.sigmoid(logit)
-        # pred = tf.layers.dense(emb_graph, 1, activation=None, name='linear1')
+        # pred = tf.compat.v1.layers.dense(emb_graph, 1, activation=None, name='linear1')
         return pred,logit
 
 def discriminator(x,x_gen,args,name='d_net'):
@@ -167,9 +167,9 @@ def discriminator(x,x_gen,args,name='d_net'):
 class GCNPolicy(object):
     recurrent = False
     def __init__(self, name, ob_space, ac_space,args, kind='small', atom_type_num = None):
-        with tf.variable_scope(name):
+        with tf.compat.v1.variable_scope(name):
             self._init(ob_space, ac_space, kind, atom_type_num,args)
-            self.scope = tf.get_variable_scope().name
+            self.scope = tf.compat.v1.get_variable_scope().name
 
     def _init(self, ob_space, ac_space, kind, atom_type_num,args):
         self.pdtype = MultiCatCategoricalPdType
@@ -178,15 +178,15 @@ class GCNPolicy(object):
               'node': U.get_placeholder(name="node", dtype=tf.float32, shape=[None,1,None,ob_space['node'].shape[2]])}
         # only when evaluating given action, at training time
         self.ac_real = U.get_placeholder(name='ac_real', dtype=tf.int64, shape=[None,4]) # feed groudtruth action
-        ob_node = tf.layers.dense(ob['node'],8,activation=None,use_bias=False,name='emb') # embedding layer
+        ob_node = tf.compat.v1.layers.dense(ob['node'],8,activation=None,use_bias=False,name='emb') # embedding layer
         if args.bn==1:
-            ob_node = tf.layers.batch_normalization(ob_node,axis=-1)
+            ob_node = tf.compat.v1.layers.batch_normalization(ob_node,axis=-1)
         if args.has_concat==1:
             emb_node = tf.concat((GCN_batch(ob['adj'], ob_node, args.emb_size, name='gcn1',aggregate=args.gcn_aggregate),ob_node),axis=-1)
         else:
             emb_node = GCN_batch(ob['adj'], ob_node, args.emb_size, name='gcn1',aggregate=args.gcn_aggregate)
         if args.bn == 1:
-            emb_node = tf.layers.batch_normalization(emb_node, axis=-1)
+            emb_node = tf.compat.v1.layers.batch_normalization(emb_node, axis=-1)
         for i in range(args.layer_num_g-2):
             if args.has_residual==1:
                 emb_node = GCN_batch(ob['adj'], emb_node, args.emb_size, name='gcn1_'+str(i+1),aggregate=args.gcn_aggregate)+self.emb_node1
@@ -195,7 +195,7 @@ class GCNPolicy(object):
             else:
                 emb_node = GCN_batch(ob['adj'], emb_node, args.emb_size, name='gcn1_' + str(i + 1),aggregate=args.gcn_aggregate)
             if args.bn == 1:
-                emb_node = tf.layers.batch_normalization(emb_node, axis=-1)
+                emb_node = tf.compat.v1.layers.batch_normalization(emb_node, axis=-1)
         emb_node = GCN_batch(ob['adj'], emb_node, args.emb_size, is_act=False, is_normalize=(args.bn == 0), name='gcn2',aggregate=args.gcn_aggregate)
         emb_node = tf.squeeze(emb_node,axis=1)  # B*n*f
 
@@ -217,14 +217,14 @@ class GCNPolicy(object):
             emb_node = tf.concat([emb_node, emb_graph], axis=2)
 
         ### 2 predict stop
-        emb_stop = tf.layers.dense(emb_node, args.emb_size, activation=tf.nn.relu, use_bias=False, name='linear_stop1')
+        emb_stop = tf.compat.v1.layers.dense(emb_node, args.emb_size, activation=tf.nn.relu, use_bias=False, name='linear_stop1')
         if args.bn==1:
-            emb_stop = tf.layers.batch_normalization(emb_stop,axis=-1)
+            emb_stop = tf.compat.v1.layers.batch_normalization(emb_stop,axis=-1)
         self.logits_stop = tf.reduce_sum(emb_stop,axis=1)
-        self.logits_stop = tf.layers.dense(self.logits_stop, 2, activation=None, name='linear_stop2_1')  # B*2
+        self.logits_stop = tf.compat.v1.layers.dense(self.logits_stop, 2, activation=None, name='linear_stop2_1')  # B*2
         # explicitly show node num
-        # self.logits_stop = tf.concat((tf.reduce_mean(tf.layers.dense(emb_node, 32, activation=tf.nn.relu, name='linear_stop1'),axis=1),tf.reshape(ob_len_first/5,[-1,1])),axis=1)
-        # self.logits_stop = tf.layers.dense(self.logits_stop, 2, activation=None, name='linear_stop2')  # B*2
+        # self.logits_stop = tf.concat((tf.reduce_mean(tf.compat.v1.layers.dense(emb_node, 32, activation=tf.nn.relu, name='linear_stop1'),axis=1),tf.reshape(ob_len_first/5,[-1,1])),axis=1)
+        # self.logits_stop = tf.compat.v1.layers.dense(self.logits_stop, 2, activation=None, name='linear_stop2')  # B*2
 
         stop_shift = tf.constant([[0,args.stop_shift]],dtype=tf.float32)
         pd_stop = CategoricalPdType(-1).pdfromflat(flat=self.logits_stop+stop_shift)
@@ -232,8 +232,8 @@ class GCNPolicy(object):
 
         ### 3.1: select first (active) node
         # rules: only select effective nodes
-        self.logits_first = tf.layers.dense(emb_node, args.emb_size, activation=tf.nn.relu, name='linear_select1')
-        self.logits_first = tf.squeeze(tf.layers.dense(self.logits_first, 1, activation=None, name='linear_select2'),axis=-1) # B*n
+        self.logits_first = tf.compat.v1.layers.dense(emb_node, args.emb_size, activation=tf.nn.relu, name='linear_select1')
+        self.logits_first = tf.squeeze(tf.compat.v1.layers.dense(self.logits_first, 1, activation=None, name='linear_select2'),axis=-1) # B*n
         logits_first_null = tf.ones(tf.shape(self.logits_first))*-1000
         self.logits_first = tf.where(condition=logits_first_mask,x=self.logits_first,y=logits_first_null)
         # using own prediction
@@ -254,8 +254,8 @@ class GCNPolicy(object):
 
         # mlp
         emb_cat = tf.concat([tf.tile(emb_first,[1,tf.shape(emb_node)[1],1]),emb_node],axis=2)
-        self.logits_second = tf.layers.dense(emb_cat, args.emb_size, activation=tf.nn.relu, name='logits_second1')
-        self.logits_second = tf.layers.dense(self.logits_second, 1, activation=None, name='logits_second2')
+        self.logits_second = tf.compat.v1.layers.dense(emb_cat, args.emb_size, activation=tf.nn.relu, name='logits_second1')
+        self.logits_second = tf.compat.v1.layers.dense(self.logits_second, 1, activation=None, name='logits_second2')
         # # bilinear
         # self.logits_second = tf.transpose(bilinear(emb_first, emb_node, name='logits_second'), [0, 2, 1])
 
@@ -274,8 +274,8 @@ class GCNPolicy(object):
         # using groudtruth
         # mlp
         emb_cat = tf.concat([tf.tile(emb_first_real, [1, tf.shape(emb_node)[1], 1]), emb_node], axis=2)
-        self.logits_second_real = tf.layers.dense(emb_cat, args.emb_size, activation=tf.nn.relu, name='logits_second1',reuse=True)
-        self.logits_second_real = tf.layers.dense(self.logits_second_real, 1, activation=None, name='logits_second2',reuse=True)
+        self.logits_second_real = tf.compat.v1.layers.dense(emb_cat, args.emb_size, activation=tf.nn.relu, name='logits_second1',reuse=True)
+        self.logits_second_real = tf.compat.v1.layers.dense(self.logits_second_real, 1, activation=None, name='logits_second2',reuse=True)
         # # bilinear
         # self.logits_second_real = tf.transpose(bilinear(emb_first_real, emb_node, name='logits_second'), [0, 2, 1])
 
@@ -293,8 +293,8 @@ class GCNPolicy(object):
         # using own prediction
         # MLP
         emb_cat = tf.concat([emb_first,emb_second],axis=-1)
-        self.logits_edge = tf.layers.dense(emb_cat, args.emb_size, activation=tf.nn.relu, name='logits_edge1')
-        self.logits_edge = tf.layers.dense(self.logits_edge, ob['adj'].get_shape()[1], activation=None, name='logits_edge2')
+        self.logits_edge = tf.compat.v1.layers.dense(emb_cat, args.emb_size, activation=tf.nn.relu, name='logits_edge1')
+        self.logits_edge = tf.compat.v1.layers.dense(self.logits_edge, ob['adj'].get_shape()[1], activation=None, name='logits_edge2')
         self.logits_edge = tf.squeeze(self.logits_edge,axis=1)
         # # bilinear
         # self.logits_edge = tf.reshape(bilinear_multi(emb_first,emb_second,out_dim=ob['adj'].get_shape()[1]),[-1,ob['adj'].get_shape()[1]])
@@ -304,8 +304,8 @@ class GCNPolicy(object):
         # using ground truth
         # MLP
         emb_cat = tf.concat([emb_first_real, emb_second_real], axis=-1)
-        self.logits_edge_real = tf.layers.dense(emb_cat, args.emb_size, activation=tf.nn.relu, name='logits_edge1', reuse=True)
-        self.logits_edge_real = tf.layers.dense(self.logits_edge_real, ob['adj'].get_shape()[1], activation=None,
+        self.logits_edge_real = tf.compat.v1.layers.dense(emb_cat, args.emb_size, activation=tf.nn.relu, name='logits_edge1', reuse=True)
+        self.logits_edge_real = tf.compat.v1.layers.dense(self.logits_edge_real, ob['adj'].get_shape()[1], activation=None,
                                            name='logits_edge2', reuse=True)
         self.logits_edge_real = tf.squeeze(self.logits_edge_real, axis=1)
         # # bilinear
@@ -315,11 +315,11 @@ class GCNPolicy(object):
 
         # ncat_list = [tf.shape(logits_first),ob_space['adj'].shape[-1],ob_space['adj'].shape[0]]
         self.pd = self.pdtype(-1).pdfromflat([self.logits_first,self.logits_second_real,self.logits_edge_real,self.logits_stop])
-        self.vpred = tf.layers.dense(emb_node, args.emb_size, use_bias=False, activation=tf.nn.relu, name='value1')
+        self.vpred = tf.compat.v1.layers.dense(emb_node, args.emb_size, use_bias=False, activation=tf.nn.relu, name='value1')
         if args.bn==1:
-            self.vpred = tf.layers.batch_normalization(self.vpred,axis=-1)
+            self.vpred = tf.compat.v1.layers.batch_normalization(self.vpred,axis=-1)
         self.vpred = tf.reduce_max(self.vpred,axis=1)
-        self.vpred = tf.layers.dense(self.vpred, 1, activation=None, name='value2')
+        self.vpred = tf.compat.v1.layers.dense(self.vpred, 1, activation=None, name='value2')
 
         self.state_in = []
         self.state_out = []
@@ -339,7 +339,7 @@ class GCNPolicy(object):
         # debug['pd'] = self.pd.logp(self.ac)
         debug['ac'] = self.ac
 
-        stochastic = tf.placeholder(dtype=tf.bool, shape=())
+        stochastic = tf.compat.v1.placeholder(dtype=tf.bool, shape=())
         self._act = U.function([stochastic, ob['adj'], ob['node']], [self.ac, self.vpred, debug]) # add debug in second arg if needed
 
     def act(self, stochastic, ob):
@@ -347,9 +347,9 @@ class GCNPolicy(object):
         # return self._act(stochastic, ob['adj'], ob['node'])
 
     def get_variables(self):
-        return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.scope)
+        return tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, self.scope)
     def get_trainable_variables(self):
-        return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
+        return tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, self.scope)
     def get_initial_state(self):
         return []
 
@@ -361,7 +361,7 @@ class GCNPolicy(object):
 
 
 def GCN_emb(ob,args):
-    ob_node = tf.layers.dense(ob['node'], 8, activation=None, use_bias=False, name='emb')  # embedding layer
+    ob_node = tf.compat.v1.layers.dense(ob['node'], 8, activation=None, use_bias=False, name='emb')  # embedding layer
     if args.has_concat == 1:
         emb_node1 = tf.concat(
             (GCN_batch(ob['adj'], ob_node, args.emb_size, name='gcn1', aggregate=args.gcn_aggregate), ob_node),
@@ -416,7 +416,7 @@ if __name__ == "__main__":
     print('adj',ob['adj'].shape)
     print('node',ob['node'].shape)
     with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
+        sess.run(tf.compat.v1.global_variables_initializer())
         for i in range(20):
             ob = env.reset()
             for j in range(0,20):
@@ -440,9 +440,9 @@ if __name__ == "__main__":
 # class GCNPolicy_scaffold(object):
 #     recurrent = False
 #     def __init__(self, name, ob_space, ac_space,args, kind='small', atom_type_num = None):
-#         with tf.variable_scope(name):
+#         with tf.compat.v1.variable_scope(name):
 #             self._init(ob_space, ac_space, kind, atom_type_num,args)
-#             self.scope = tf.get_variable_scope().name
+#             self.scope = tf.compat.v1.get_variable_scope().name
 #
 #     def _init(self, ob_space, ac_space, kind, atom_type_num,args):
 #         self.pdtype = MultiCatCategoricalPdType
@@ -615,9 +615,9 @@ if __name__ == "__main__":
 #         # return self._act(stochastic, ob['adj'], ob['node'])
 #
 #     def get_variables(self):
-#         return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.scope)
+#         return tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, self.scope)
 #     def get_trainable_variables(self):
-#         return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
+#         return tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, self.scope)
 #     def get_initial_state(self):
 #         return []
 #
