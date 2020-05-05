@@ -24,13 +24,31 @@ def train(args,seed,writer=None):
     set_global_seeds(workerseed)
     if args.env=='molecule':
         env = gym.make('molecule-v0')
-        env.init(data_type=args.dataset,logp_ratio=args.logp_ratio,qed_ratio=args.qed_ratio,sa_ratio=args.sa_ratio,reward_step_total=args.reward_step_total,is_normalize=args.normalize_adj,reward_type=args.reward_type,reward_target=args.reward_target,has_feature=bool(args.has_feature),is_conditional=bool(args.is_conditional),conditional=args.conditional,max_action=args.max_action,min_action=args.min_action) # remember call this after gym.make!!
+        env.init(data_type=args.dataset,
+                 logp_ratio=args.logp_ratio,
+                 qed_ratio=args.qed_ratio,
+                 sa_ratio=args.sa_ratio,
+                 reward_step_total=args.reward_step_total,
+                 is_normalize=args.normalize_adj,
+                 reward_type=args.reward_type,
+                 reward_target=args.reward_target,
+                 has_feature=bool(args.has_feature),
+                 is_conditional=bool(args.is_conditional),
+                 conditional=args.conditional,
+                 max_action=args.max_action,
+                 min_action=args.min_action) # remember call this after gym.make!!
     elif args.env=='graph':
         env = GraphEnv()
-        env.init(reward_step_total=args.reward_step_total,is_normalize=args.normalize_adj,dataset=args.dataset) # remember call this after gym.make!!
+        env.init(reward_step_total=args.reward_step_total,
+                 is_normalize=args.normalize_adj,
+                 dataset=args.dataset) # remember call this after gym.make!!
     print(env.observation_space)
     def policy_fn(name, ob_space, ac_space):
-        return gcn_policy.GCNPolicy(name=name, ob_space=ob_space, ac_space=ac_space, atom_type_num=env.atom_type_num,args=args)
+        return gcn_policy.GCNPolicy(name=name,
+                                    ob_space=ob_space,
+                                    ac_space=ac_space,
+                                    atom_type_num=env.atom_type_num,
+                                    args=args)
     env.seed(workerseed)
 
     pposgd_simple_gcn.learn(args,env, policy_fn,

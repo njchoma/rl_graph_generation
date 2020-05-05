@@ -182,16 +182,17 @@ def add_vtarg_and_adv(seg, gamma, lam):
 
 
 def learn(args,env, policy_fn, *,
-        timesteps_per_actorbatch, # timesteps per actor per update
-        clip_param, entcoeff, # clipping parameter epsilon, entropy coeff
-        optim_epochs, optim_stepsize, optim_batchsize,# optimization hypers
-        gamma, lam, # advantage estimation
-        max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0,  # time constraint
-        callback=None, # you can do anything in the callback, since it takes locals(), globals()
-        adam_epsilon=1e-5,
-        schedule='constant', # annealing for stepsize parameters (epsilon and adam)
-        writer=None
-        ):
+          timesteps_per_actorbatch, # timesteps per actor per update
+          clip_param, entcoeff, # clipping parameter epsilon, entropy coeff
+          optim_epochs, optim_stepsize, optim_batchsize,# optimization hypers
+          gamma, lam, # advantage estimation
+          max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0,  # time constraint
+          callback=None, # you can do anything in the callback, since it takes locals(), globals()
+          adam_epsilon=1e-5,
+          schedule='constant', # annealing for stepsize parameters (epsilon and adam)
+          writer=None):
+    print("\nBeginning learning...\n")
+
     # Setup losses and stuff
     # ----------------------------------------
     ob_space = env.observation_space
@@ -204,7 +205,6 @@ def learn(args,env, policy_fn, *,
     lrmult = tf.compat.v1.placeholder(name='lrmult', dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
     clip_param = clip_param * lrmult # Annealed cliping parameter epislon
 
-    # ob = U.get_placeholder_cached(name="ob")
     ob = {}
     ob['adj'] = U.get_placeholder_cached(name="adj")
     ob['node'] = U.get_placeholder_cached(name="node")
@@ -217,8 +217,6 @@ def learn(args,env, policy_fn, *,
     ob_real['adj'] = U.get_placeholder(shape=[None,ob_space['adj'].shape[0],None,None],dtype=tf.float32,name='adj_real')
     ob_real['node'] = U.get_placeholder(shape=[None,1,None,ob_space['node'].shape[2]],dtype=tf.float32,name='node_real')
 
-    # ac = pi.pdtype.sample_placeholder([None])
-    # ac = tf.compat.v1.placeholder(dtype=tf.int64,shape=env.action_space.nvec.shape)
     ac = tf.compat.v1.placeholder(dtype=tf.int64, shape=[None,4],name='ac_real')
 
     ## PPO loss
@@ -245,12 +243,6 @@ def learn(args,env, policy_fn, *,
     loss_expert = -tf.reduce_mean(pi_logp)
 
     ## Discriminator loss
-    # loss_d_step, _, _ = discriminator(ob_real, ob_gen,args, name='d_step')
-    # loss_d_gen_step,_ = discriminator_net(ob_gen,args, name='d_step')
-    # loss_d_final, _, _ = discriminator(ob_real, ob_gen,args, name='d_final')
-    # loss_d_gen_final,_ = discriminator_net(ob_gen,args, name='d_final')
-
-
     step_pred_real, step_logit_real = discriminator_net(ob_real, args, name='d_step')
     step_pred_gen, step_logit_gen = discriminator_net(ob_gen, args, name='d_step')
     loss_d_step_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=step_logit_real, labels=tf.ones_like(step_logit_real)*0.9))
@@ -309,9 +301,7 @@ def learn(args,env, policy_fn, *,
 
     assign_old_eq_new = U.function([],[], updates=[tf.compat.v1.assign(oldv, newv)
         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
-    #
-    # compute_losses_expert = U.function([ob['adj'], ob['node'], ac, pi.ac_real],
-    #                                 loss_expert)
+
     compute_losses = U.function([ob['adj'], ob['node'], ac, pi.ac_real, oldpi.ac_real, atarg, ret, lrmult], losses)
 
 
@@ -381,7 +371,6 @@ def learn(args,env, policy_fn, *,
 
         seg = seg_gen.__next__()
         add_vtarg_and_adv(seg, gamma, lam)
-        # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob_adj, ob_node, ac, atarg, tdlamret = seg["ob_adj"], seg["ob_node"], seg["ac"], seg["adv"], seg["tdlamret"]
         vpredbefore = seg["vpred"]  # predicted value function before udpate
         atarg = (atarg - atarg.mean()) / atarg.std()  # standardized advantage function estimate
@@ -411,10 +400,6 @@ def learn(args,env, policy_fn, *,
             if iters_so_far>=args.expert_start and iters_so_far<=args.expert_end+pretrain_shift:
                 ## Expert train
                 # # # learn how to stop
-                # ob_expert, ac_expert = env.get_expert(optim_batchsize, is_final=True)
-                # loss_expert_stop, g_expert_stop = lossandgrad_expert_stop(ob_expert['adj'], ob_expert['node'], ac_expert,ac_expert)
-                # loss_expert_stop = np.mean(loss_expert_stop)
-
                 ob_expert, ac_expert = env.get_expert(optim_batchsize)
                 loss_expert, g_expert = lossandgrad_expert(ob_expert['adj'], ob_expert['node'], ac_expert, ac_expert)
                 loss_expert = np.mean(loss_expert)
@@ -425,35 +410,43 @@ def learn(args,env, policy_fn, *,
                 assign_old_eq_new() # set old parameter values to new parameter values
                 batch = d.next_batch(optim_batchsize)
                 # ppo
-                # if args.has_ppo==1:
                 if iters_so_far >= args.rl_start+pretrain_shift: # start generator after discriminator trained a well..
-                    *newlosses, g_ppo = lossandgrad_ppo(batch["ob_adj"], batch["ob_node"], batch["ac"], batch["ac"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+                    *newlosses, g_ppo = lossandgrad_ppo(batch["ob_adj"],
+                                                        batch["ob_node"],
+                                                        batch["ac"],
+                                                        batch["ac"],
+                                                        batch["ac"],
+                                                        batch["atarg"],
+                                                        batch["vtarg"],
+                                                        cur_lrmult)
                     losses_ppo=newlosses
 
                 if args.has_d_step==1 and i_optim>=optim_epochs//2:
                     # update step discriminator
-                    ob_expert, _ = env.get_expert(optim_batchsize,curriculum=args.curriculum,level_total=args.curriculum_num,level=level)
-                    loss_d_step, g_d_step = lossandgrad_d_step(ob_expert["adj"], ob_expert["node"], batch["ob_adj"], batch["ob_node"])
+                    ob_expert, _ = env.get_expert(optim_batchsize,
+                                                  curriculum=args.curriculum,
+                                                  evel_total=args.curriculum_num,
+                                                  evel=level)
+                    loss_d_step, g_d_step = lossandgrad_d_step(ob_expert["adj"],
+                                                               ob_expert["node"],
+                                                               batch["ob_adj"],
+                                                               batch["ob_node"])
                     adam_d_step.update(g_d_step, optim_stepsize * cur_lrmult)
                     loss_d_step = np.mean(loss_d_step)
 
                 if args.has_d_final==1 and i_optim>=optim_epochs//4*3:
                     # update final discriminator
-                    ob_expert, _ = env.get_expert(optim_batchsize, is_final=True, curriculum=args.curriculum,level_total=args.curriculum_num, level=level)
+                    ob_expert, _ = env.get_expert(optim_batchsize,
+                                                  is_final=True,
+                                                  curriculum=args.curriculum,
+                                                  level_total=args.curriculum_num,
+                                                  level=level)
                     seg_final_adj, seg_final_node = traj_final_generator(pi, copy.deepcopy(env), optim_batchsize,True)
                     # update final discriminator
                     loss_d_final, g_d_final = lossandgrad_d_final(ob_expert["adj"], ob_expert["node"], seg_final_adj, seg_final_node)
-                    # loss_d_final, g_d_final = lossandgrad_d_final(ob_expert["adj"], ob_expert["node"], ob_adjs, ob_nodes)
                     adam_d_final.update(g_d_final, optim_stepsize * cur_lrmult)
-                    # print(seg["ob_adj_final"].shape)
-                    # logger.log(fmt_row(13, np.mean(losses, axis=0)))
 
             # update generator
-            # adam_pi_stop.update(0.1*g_expert_stop, optim_stepsize * cur_lrmult)
-
-            # if g_expert==0:
-            #     adam_pi.update(g_ppo, optim_stepsize * cur_lrmult)
-            # else:
             adam_pi.update(0.2*g_ppo+0.05*g_expert, optim_stepsize * cur_lrmult)
 
         # WGAN
