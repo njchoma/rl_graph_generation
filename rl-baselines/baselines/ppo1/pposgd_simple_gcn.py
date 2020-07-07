@@ -425,8 +425,8 @@ def learn(args,env, policy_fn, *,
                     # update step discriminator
                     ob_expert, _ = env.get_expert(optim_batchsize,
                                                   curriculum=args.curriculum,
-                                                  evel_total=args.curriculum_num,
-                                                  evel=level)
+                                                  level_total=args.curriculum_num,
+                                                  level=level)
                     loss_d_step, g_d_step = lossandgrad_d_step(ob_expert["adj"],
                                                                ob_expert["node"],
                                                                batch["ob_adj"],

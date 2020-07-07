@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 from mpi4py import MPI
+import sys
+sys.path.insert(0,"/Users/ADChen/rl_graph_generation/gym-molecule")
+sys.path.insert(0,"/Users/ADChen/rl_graph_generation/rl-baselines")
 from baselines.common import set_global_seeds
 from baselines import logger
 from tensorboardX import SummaryWriter
