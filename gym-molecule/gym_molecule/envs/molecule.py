@@ -78,8 +78,10 @@ def load_conditional(type='low'):
         # print(data[799])
     elif type=='high':
         cwd = os.path.dirname(__file__)
+        # path = os.path.join(os.path.dirname(cwd), 'dataset',
+        #                     'zinc_plogp_sorted.csv')
         path = os.path.join(os.path.dirname(cwd), 'dataset',
-                            'zinc_plogp_sorted.csv')
+                    'ab1f_merged_smiles_scores.csv')
         import csv
         with open(path, 'r') as fp:
             reader = csv.reader(fp, delimiter=',', quotechar='"')
@@ -109,6 +111,7 @@ class MoleculeEnv(gym.Env):
         self.force_final = force_final
 
         self.conditional_list = load_conditional(conditional)
+        #Default is_conditional is False.
         if self.is_conditional:
             self.conditional = random.sample(self.conditional_list,1)[0]
             self.mol = Chem.RWMol(Chem.MolFromSmiles(self.conditional[0]))
@@ -175,8 +178,10 @@ class MoleculeEnv(gym.Env):
             path = os.path.join(os.path.dirname(cwd), 'dataset',
                                 'gdb13.rand1M.smi.gz')  # gdb 13
         elif data_type=='zinc':
+            # path = os.path.join(os.path.dirname(cwd), 'dataset',
+            #                     '250k_rndm_zinc_drugs_clean_sorted.smi')  # ZINC
             path = os.path.join(os.path.dirname(cwd), 'dataset',
-                                '250k_rndm_zinc_drugs_clean_sorted.smi')  # ZINC
+                    '250k_rndm_zinc_drugs_clean_sorted.smi')  # ZINC
         self.dataset = gdb_dataset(path)
 
         ## load scaffold data if necessary
@@ -356,6 +361,7 @@ class MoleculeEnv(gym.Env):
         to avoid error, assume an atom already exists
         :return: ob
         '''
+        # if self.is_conditional, env will start with one of the zinc molecules with a high plogp.
         if self.is_conditional:
             self.conditional = random.sample(self.conditional_list, 1)[0]
             self.mol = Chem.RWMol(Chem.MolFromSmiles(self.conditional[0]))

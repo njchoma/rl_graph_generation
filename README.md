@@ -11,7 +11,7 @@ conda create -c rdkit -n my-rdkit-env rdkit
 - Install mpi4py, networkx:
 ```bash
 conda install mpi4py
-pip install networkx=1.11
+pip install networkx==1.11
 ```
 - Install OpenAI baseline dependencies:
 ```bash
